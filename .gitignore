@@ -1,0 +1,13 @@
+# Python
+__pycache__/
+*.pyc
+backend/venv/
+backend/saved_snippets/
+.pytest_cache/
+
+# Node
+frontend/node_modules/
+frontend/dist/
+
+# OS / editor
+.DS_Store
