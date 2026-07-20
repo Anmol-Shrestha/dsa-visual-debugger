@@ -11,9 +11,9 @@ your code at increasing input sizes, counts traced operations, and fits the
 measurements against candidate growth curves. Planning tools (a pseudocode
 notepad and a drag-and-drop flowchart canvas) support thinking before coding.
 
-> **Live demo:** the deployed frontend ships with pre-recorded traces
-> (bubble sort, two sum, linked-list reversal) — clone the repo to trace
-> your own code with the live backend.
+> **Live demo:** <https://anmol-shrestha.github.io/dsa-visual-debugger/> —
+> ships with pre-recorded traces (bubble sort, two sum, linked-list
+> reversal). Clone the repo to trace your own code with the live backend.
 
 ## How it works
 
