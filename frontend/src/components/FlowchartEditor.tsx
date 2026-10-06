@@ -129,12 +129,15 @@ const nodeTypes = {
 
 const SAMPLE_NODES: FlowNode[] = [
   { id: "n1", type: "terminal", position: { x: 160, y: 0 }, data: { label: "Start" } },
-  { id: "n2", type: "io", position: { x: 156, y: 80 }, data: { label: "Input: nums, target" } },
-  { id: "n3", type: "process", position: { x: 156, y: 160 }, data: { label: "seen = {}" } },
-  { id: "n4", type: "decision", position: { x: 156, y: 240 }, data: { label: "complement in seen?" } },
-  { id: "n5", type: "process", position: { x: 156, y: 380 }, data: { label: "return indices" } },
-  { id: "n6", type: "process", position: { x: 380, y: 246 }, data: { label: "add num to seen" } },
-  { id: "n7", type: "terminal", position: { x: 160, y: 460 }, data: { label: "End" } },
+  { id: "n2", type: "io", position: { x: 160, y: 80 }, data: { label: "INPUT: cart items" } },
+  { id: "n3", type: "process", position: { x: 160, y: 160 }, data: { label: "total = 0" } },
+  { id: "n4", type: "decision", position: { x: 160, y: 260 }, data: { label: "For each item in cart" } },
+  { id: "n5", type: "process", position: { x: 160, y: 400 }, data: { label: "ADD item.price to total" } },
+  { id: "n6", type: "decision", position: { x: 160, y: 520 }, data: { label: "total > 100?" } },
+  { id: "n7", type: "process", position: { x: 160, y: 660 }, data: { label: "discount = total * 0.1" } },
+  { id: "n8", type: "process", position: { x: 160, y: 740 }, data: { label: "total = total - discount" } },
+  { id: "n9", type: "io", position: { x: 160, y: 840 }, data: { label: "OUTPUT: total" } },
+  { id: "n10", type: "terminal", position: { x: 160, y: 920 }, data: { label: "End" } },
 ];
 
 const SAMPLE_EDGES: Edge[] = [
@@ -142,9 +145,13 @@ const SAMPLE_EDGES: Edge[] = [
   { id: "e2", source: "n2", target: "n3" },
   { id: "e3", source: "n3", target: "n4" },
   { id: "e4", source: "n4", sourceHandle: "yes", target: "n5", label: "Yes" },
-  { id: "e5", source: "n4", sourceHandle: "no", target: "n6", label: "No" },
-  { id: "e6", source: "n6", target: "n4" },
-  { id: "e7", source: "n5", target: "n7" },
+  { id: "e5", source: "n5", target: "n4" },
+  { id: "e6", source: "n4", sourceHandle: "no", target: "n6", label: "No" },
+  { id: "e7", source: "n6", sourceHandle: "yes", target: "n7", label: "Yes" },
+  { id: "e8", source: "n7", target: "n8" },
+  { id: "e9", source: "n8", target: "n9" },
+  { id: "e10", source: "n6", sourceHandle: "no", target: "n9", label: "No" },
+  { id: "e11", source: "n9", target: "n10" },
 ];
 
 function loadSaved(): { nodes: FlowNode[]; edges: Edge[] } {
