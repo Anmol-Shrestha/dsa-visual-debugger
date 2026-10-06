@@ -48,9 +48,6 @@ def get_complexity_analyzer() -> ComplexityAnalyzer:
 
 class TraceRequest(BaseModel):
     code: str
-    function_name: str
-    args: list[Any] = Field(default_factory=list)
-    kwargs: dict[str, Any] = Field(default_factory=dict)
 
 
 class SaveCodeRequest(BaseModel):
@@ -74,14 +71,9 @@ def trace_execution(
     request: TraceRequest,
     engine: ExecutionEngine = Depends(get_execution_engine),
 ) -> list[dict[str, Any]]:
-    """Execute the submitted function and return its full timeline array."""
+    """Execute the submitted code and return its full timeline array."""
     try:
-        return engine.run(
-            code=request.code,
-            function_name=request.function_name,
-            args=request.args,
-            kwargs=request.kwargs,
-        )
+        return engine.run(code=request.code)
     except ExecutionEngineError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
 

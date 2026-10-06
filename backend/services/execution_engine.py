@@ -58,26 +58,17 @@ class ExecutionEngine:
         # When False, line events are recorded without variable snapshots —
         # used by the complexity analyzer, which only needs step counts.
         self._capture_variables = capture_variables
-        self._last_result: Any = None
         # Per-run mutable state, reset at the top of every run().
         self._steps = 0
         self._depth = 0
-        self._recording = False
         self._deadline = 0.0
 
-    def run(
-        self,
-        code: str,
-        function_name: str,
-        args: list[Any],
-        kwargs: dict[str, Any],
-    ) -> list[dict[str, Any]]:
-        """Execute `function_name` from `code` and return the timeline array."""
+    def run(self, code: str) -> list[dict[str, Any]]:
+        """Execute the code from top to bottom and return the full timeline."""
         # Fresh budgets per run: step count, frame depth, and wall clock.
         self._trace_manager.reset()
         self._steps = 0
         self._depth = 0
-        self._recording = False
         self._deadline = time.monotonic() + self._max_seconds
 
         try:
@@ -89,23 +80,10 @@ class ExecutionEngine:
 
         namespace: dict[str, Any] = {}
 
-        # The hook is active during the module-level exec too (recording off),
-        # so a top-level infinite loop is still bounded by the same ceilings.
+        # Trace is active from the start of exec() through completion.
         sys.settrace(self._global_trace)
         try:
             exec(compiled, namespace)
-
-            target = namespace.get(function_name)
-            if not callable(target):
-                raise ExecutionEngineError(
-                    f"Function '{function_name}' was not found in the submitted code."
-                )
-
-            # From here on, every 'line' event lands in the timeline.
-            self._recording = True
-            self._last_result = target(*args, **kwargs)
-        except ExecutionEngineError:
-            raise
         except _SafetyLimitExceeded as exc:
             raise ExecutionEngineError(str(exc)) from exc
         except Exception as exc:
@@ -129,10 +107,6 @@ class ExecutionEngine:
             for entry in self._trace_manager.history
         ]
 
-    @property
-    def last_result(self) -> Any:
-        """Return value of the most recent run's target function."""
-        return self._last_result
 
     # ------------------------------------------------------------------
     # Trace hooks
@@ -163,18 +137,17 @@ class ExecutionEngine:
                 raise _SafetyLimitExceeded(
                     f"Wall-clock limit of {self._max_seconds}s exceeded"
                 )
-            if self._recording:
-                # ADR-002 stage 1: snapshot immediately; the frame object is
-                # never stored, so no reference cycles keep stacks alive.
-                self._trace_manager.record(
-                    line_number=frame.f_lineno,
-                    frame_name=frame.f_code.co_name,
-                    local_variables=(
-                        self._snapshot_locals(frame.f_locals)
-                        if self._capture_variables
-                        else {}
-                    ),
-                )
+            # ADR-002 stage 1: snapshot immediately; the frame object is
+            # never stored, so no reference cycles keep stacks alive.
+            self._trace_manager.record(
+                line_number=frame.f_lineno,
+                frame_name=frame.f_code.co_name,
+                local_variables=(
+                    self._snapshot_locals(frame.f_locals)
+                    if self._capture_variables
+                    else {}
+                ),
+            )
         elif event == "return":
             self._depth -= 1
         return self._local_trace

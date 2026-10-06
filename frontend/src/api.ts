@@ -1,12 +1,5 @@
 import type { ComplexityResult, TraceStep } from "./types";
 
-interface TraceRequest {
-  code: string;
-  function_name: string;
-  args: unknown[];
-  kwargs: Record<string, unknown>;
-}
-
 async function request<T>(url: string, init?: RequestInit): Promise<T> {
   const res = await fetch(url, init);
   if (!res.ok) {
@@ -16,11 +9,11 @@ async function request<T>(url: string, init?: RequestInit): Promise<T> {
   return res.json() as Promise<T>;
 }
 
-export function runTrace(payload: TraceRequest): Promise<TraceStep[]> {
+export function runTrace(code: string): Promise<TraceStep[]> {
   return request<TraceStep[]>("/v1/debug/trace", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(payload),
+    body: JSON.stringify({ code }),
   });
 }
 

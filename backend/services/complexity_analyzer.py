@@ -8,6 +8,7 @@ returns the positional-arguments list for a given size n.
 Pure business logic — zero FastAPI coupling.
 """
 
+import json
 import math
 from typing import Any, Callable
 
@@ -116,15 +117,30 @@ class ComplexityAnalyzer:
         return sorted(set(sizes))
 
     def _build_args(self, code: str, generator_name: str, n: int) -> list[Any]:
-        """Run the user's generator (untraced-for-counting) to build args."""
+        """Run the user's generator to build args for this size."""
+        from services.trace_manager import InMemoryTraceManager
+        # Add a dummy statement after the generator call to ensure the assignment
+        # is captured in the traced timeline
+        gen_code = f"{code}\n__gen_result = {generator_name}({n})\n__dummy = None\n"
         engine = ExecutionEngine(
-            CountingTraceManager(),
+            InMemoryTraceManager(),
             max_steps=COUNTING_MAX_STEPS,
             max_seconds=COUNTING_MAX_SECONDS,
-            capture_variables=False,
+            capture_variables=True,
         )
-        engine.run(code, generator_name, [n], {})
-        result = engine.last_result
+        timeline = engine.run(gen_code)
+        # Extract the generator result from the last module-level state
+        if not timeline:
+            raise ExecutionEngineError("Generator produced no output")
+        # Find the last frame at module level; by this point __gen_result should be defined
+        result = None
+        for entry in reversed(timeline):
+            if entry["frame_name"] == "<module>":
+                result = entry["local_variables"].get("__gen_result")
+                if result is not None:
+                    break
+        if result is None:
+            raise ExecutionEngineError(f"Generator '{generator_name}' did not return a value")
         # Convention: the generator returns the positional-arguments list.
         if isinstance(result, tuple):
             return list(result)
@@ -133,6 +149,10 @@ class ComplexityAnalyzer:
         return [result]
 
     def _count_steps(self, code: str, function_name: str, args: list[Any]) -> int:
+        # Build code that calls the function with specific args
+        # Use repr() instead of json.dumps() to handle Python objects correctly
+        args_repr = repr(args)
+        func_call_code = f"{code}\n__result = {function_name}(*{args_repr})\n"
         manager = CountingTraceManager()
         engine = ExecutionEngine(
             manager,
@@ -140,7 +160,7 @@ class ComplexityAnalyzer:
             max_seconds=COUNTING_MAX_SECONDS,
             capture_variables=False,
         )
-        engine.run(code, function_name, args, {})
+        engine.run(func_call_code)
         return manager.count
 
     def _fit(self, measurements: list[dict[str, int]]) -> list[dict[str, Any]]:

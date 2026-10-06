@@ -7,24 +7,28 @@ import PlanningModal, { type PlanTab } from "./components/PlanningModal";
 import StateInspector from "./components/StateInspector";
 import type { ComplexityResult, TraceStep } from "./types";
 
-const SAMPLE_CODE = `def bubble_sort(arr):
-    n = len(arr)
-    for i in range(n):
-        for j in range(n - i - 1):
-            if arr[j] > arr[j + 1]:
-                arr[j], arr[j + 1] = arr[j + 1], arr[j]
-    return arr
+const SAMPLE_CODE = `def calculate_total(prices):
+    total = 0
+    for price in prices:
+        total = total + price
 
-# Used by "Analyze Big-O": returns the args list for input size n
-def gen_input(n):
-    return [list(range(n, 0, -1))]
+    if total > 100:
+        discount = total * 0.1
+        total = total - discount
+
+    return total
+
+prices = [35, 45, 30]
+final_total = calculate_total(prices)
 `;
+
+const extractFunctionName = (code: string): string | null => {
+  const match = code.match(/def\s+([a-zA-Z_]\w*)\s*\(/);
+  return match ? match[1] : null;
+};
 
 export default function App() {
   const [code, setCode] = useState(SAMPLE_CODE);
-  const [functionName, setFunctionName] = useState("bubble_sort");
-  const [argsText, setArgsText] = useState("[[5, 2, 9, 1, 7]]");
-  const [kwargsText, setKwargsText] = useState("{}");
   // The entire debug session state: one immutable array + one index (ADR-003).
   const [timeline, setTimeline] = useState<TraceStep[] | null>(null);
   const [currentStep, setCurrentStep] = useState(0);
@@ -58,9 +62,6 @@ export default function App() {
 
   const loadDemoSample = (sample: DemoSample) => {
     setCode(sample.code);
-    setFunctionName(sample.functionName);
-    setArgsText(sample.argsText);
-    setKwargsText("{}");
     setTimeline(sample.timeline);
     setCurrentStep(0);
     setBigO(null);
@@ -79,25 +80,10 @@ export default function App() {
       );
       return;
     }
-    let args: unknown[];
-    let kwargs: Record<string, unknown>;
-    try {
-      args = JSON.parse(argsText || "[]");
-      kwargs = JSON.parse(kwargsText || "{}");
-      if (!Array.isArray(args)) throw new Error("Arguments must be a JSON array");
-    } catch (e) {
-      setError(`Invalid arguments: ${(e as Error).message}`);
-      return;
-    }
     setLoading(true);
     try {
       // Full-load strategy (ADR-004): one request, whole timeline in memory.
-      const steps = await runTrace({
-        code,
-        function_name: functionName,
-        args,
-        kwargs,
-      });
+      const steps = await runTrace(code);
       if (steps.length === 0) {
         setError("Execution produced no trace steps.");
         return;
@@ -114,6 +100,11 @@ export default function App() {
   const handleAnalyzeBigO = async () => {
     setError(null);
     setNotice(null);
+    const functionName = extractFunctionName(code);
+    if (!functionName) {
+      setError("Could not find a function definition in your code.");
+      return;
+    }
     if (IS_DEMO) {
       const sample = DEMO_SAMPLES.find(
         (s) => s.functionName === functionName && s.bigO,
@@ -185,7 +176,7 @@ export default function App() {
     const url = URL.createObjectURL(blob);
     const anchor = document.createElement("a");
     anchor.href = url;
-    anchor.download = `${functionName || "snippet"}.py`;
+    anchor.download = "snippet.py";
     anchor.click();
     URL.revokeObjectURL(url);
   };
@@ -199,7 +190,7 @@ export default function App() {
       return;
     }
     try {
-      const result = await saveToServer(functionName || "snippet", code);
+      const result = await saveToServer("snippet", code);
       setNotice(`Saved on server: ${result.location}`);
     } catch (e) {
       setError((e as Error).message);
@@ -240,9 +231,6 @@ export default function App() {
     [debugging, timeline, currentStep],
   );
 
-  const inputClass =
-    "rounded border border-slate-300 px-2 py-1.5 font-mono text-sm focus:border-indigo-500 focus:outline-none";
-
   return (
     <div className="flex min-h-screen flex-col bg-slate-100">
       <header className="border-b border-slate-200 bg-white px-6 py-4">
@@ -251,27 +239,6 @@ export default function App() {
             DSA Visual Debugger
           </h1>
           <div className="flex flex-wrap items-center gap-2">
-            <input
-              className={`${inputClass} w-36`}
-              value={functionName}
-              onChange={(e) => setFunctionName(e.target.value)}
-              placeholder="function name"
-              title="Target function name"
-            />
-            <input
-              className={`${inputClass} w-48`}
-              value={argsText}
-              onChange={(e) => setArgsText(e.target.value)}
-              placeholder="args (JSON array)"
-              title="Positional arguments as a JSON array"
-            />
-            <input
-              className={`${inputClass} w-28`}
-              value={kwargsText}
-              onChange={(e) => setKwargsText(e.target.value)}
-              placeholder="kwargs"
-              title="Keyword arguments as a JSON object"
-            />
             <button
               onClick={handleRun}
               disabled={loading}
