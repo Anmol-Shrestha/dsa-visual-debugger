@@ -1,4 +1,4 @@
-import type { ComplexityResult, TraceStep } from "./types";
+import type { TraceStep } from "./types";
 
 async function request<T>(url: string, init?: RequestInit): Promise<T> {
   const res = await fetch(url, init);
@@ -14,18 +14,6 @@ export function runTrace(code: string): Promise<TraceStep[]> {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ code }),
-  });
-}
-
-export function analyzeComplexity(payload: {
-  code: string;
-  function_name: string;
-  generator_name?: string;
-}): Promise<ComplexityResult> {
-  return request<ComplexityResult>("/v1/debug/complexity", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(payload),
   });
 }
 

@@ -13,7 +13,6 @@ from pydantic import BaseModel, Field
 
 from adapters.local_storage_adapter import LocalFileSystemAdapter
 from adapters.repository import CodeRepository, SnippetNotFoundError
-from services.complexity_analyzer import ComplexityAnalyzer
 from services.execution_engine import ExecutionEngine, ExecutionEngineError
 from services.trace_manager import InMemoryTraceManager
 
@@ -38,10 +37,6 @@ def get_execution_engine() -> ExecutionEngine:
     return ExecutionEngine(InMemoryTraceManager())
 
 
-def get_complexity_analyzer() -> ComplexityAnalyzer:
-    return ComplexityAnalyzer()
-
-
 # ----------------------------------------------------------------------
 # Request/response schemas
 # ----------------------------------------------------------------------
@@ -53,13 +48,6 @@ class TraceRequest(BaseModel):
 class SaveCodeRequest(BaseModel):
     filename: str
     code: str
-
-
-class ComplexityRequest(BaseModel):
-    code: str
-    function_name: str
-    generator_name: str = "gen_input"
-    sizes: list[int] | None = None
 
 
 # ----------------------------------------------------------------------
@@ -74,23 +62,6 @@ def trace_execution(
     """Execute the submitted code and return its full timeline array."""
     try:
         return engine.run(code=request.code)
-    except ExecutionEngineError as exc:
-        raise HTTPException(status_code=400, detail=str(exc)) from exc
-
-
-@router.post("/debug/complexity")
-def analyze_complexity(
-    request: ComplexityRequest,
-    analyzer: ComplexityAnalyzer = Depends(get_complexity_analyzer),
-) -> dict[str, Any]:
-    """Measure step counts across input sizes and fit a Big-O growth curve."""
-    try:
-        return analyzer.analyze(
-            code=request.code,
-            function_name=request.function_name,
-            generator_name=request.generator_name,
-            sizes=request.sizes,
-        )
     except ExecutionEngineError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
 

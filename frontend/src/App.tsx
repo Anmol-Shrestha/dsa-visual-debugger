@@ -1,11 +1,10 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { analyzeComplexity, runTrace, saveToServer } from "./api";
-import BigOPanel from "./components/BigOPanel";
+import { runTrace, saveToServer } from "./api";
 import CodeViewer from "./components/CodeViewer";
 import { DEMO_SAMPLES, IS_DEMO, type DemoSample } from "./demo";
 import PlanningModal, { type PlanTab } from "./components/PlanningModal";
 import StateInspector from "./components/StateInspector";
-import type { ComplexityResult, TraceStep } from "./types";
+import type { TraceStep } from "./types";
 
 const SAMPLE_CODE = `def calculate_total(prices):
     total = 0
@@ -22,11 +21,6 @@ prices = [35, 45, 30]
 final_total = calculate_total(prices)
 `;
 
-const extractFunctionName = (code: string): string | null => {
-  const match = code.match(/def\s+([a-zA-Z_]\w*)\s*\(/);
-  return match ? match[1] : null;
-};
-
 export default function App() {
   const [code, setCode] = useState(SAMPLE_CODE);
   // The entire debug session state: one immutable array + one index (ADR-003).
@@ -35,8 +29,6 @@ export default function App() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
-  const [bigO, setBigO] = useState<ComplexityResult | null>(null);
-  const [analyzing, setAnalyzing] = useState(false);
   const [planTab, setPlanTab] = useState<PlanTab | null>(null);
   const [pseudocode, setPseudocode] = useState(
     () => localStorage.getItem("dsa-debugger.pseudocode") ?? "",
@@ -64,7 +56,6 @@ export default function App() {
     setCode(sample.code);
     setTimeline(sample.timeline);
     setCurrentStep(0);
-    setBigO(null);
     setError(null);
     setNotice(`Loaded pre-recorded trace: ${sample.label}`);
   };
@@ -94,51 +85,6 @@ export default function App() {
       setError((e as Error).message);
     } finally {
       setLoading(false);
-    }
-  };
-
-  const handleAnalyzeBigO = async () => {
-    setError(null);
-    setNotice(null);
-    const functionName = extractFunctionName(code);
-    if (!functionName) {
-      setError("Could not find a function definition in your code.");
-      return;
-    }
-    if (IS_DEMO) {
-      const sample = DEMO_SAMPLES.find(
-        (s) => s.functionName === functionName && s.bigO,
-      );
-      if (sample?.bigO) {
-        setBigO(sample.bigO);
-        setNotice(`Pre-recorded Big-O analysis for ${sample.label}.`);
-      } else {
-        setError(
-          "Live Big-O analysis needs the backend — in this demo it is " +
-            "pre-recorded for Bubble Sort only. Load that sample and try again.",
-        );
-      }
-      return;
-    }
-    if (!code.includes("def gen_input")) {
-      setError(
-        'Big-O analysis needs a generator in your code: define e.g. ' +
-          '"def gen_input(n): return [list(range(n, 0, -1))]" — it must ' +
-          "return the positional-arguments list for input size n.",
-      );
-      return;
-    }
-    setAnalyzing(true);
-    try {
-      const result = await analyzeComplexity({
-        code,
-        function_name: functionName,
-      });
-      setBigO(result);
-    } catch (e) {
-      setError((e as Error).message);
-    } finally {
-      setAnalyzing(false);
     }
   };
 
@@ -259,13 +205,6 @@ export default function App() {
               🔀 Flow Chart
             </button>
             <button
-              onClick={handleAnalyzeBigO}
-              disabled={analyzing}
-              className="rounded bg-sky-600 px-4 py-1.5 text-sm font-semibold text-white hover:bg-sky-700 disabled:opacity-50"
-            >
-              {analyzing ? "Measuring…" : "📈 Analyze Big-O"}
-            </button>
-            <button
               onClick={handleSaveToDesktop}
               className="rounded bg-emerald-600 px-4 py-1.5 text-sm font-semibold text-white hover:bg-emerald-700"
             >
@@ -344,7 +283,6 @@ export default function App() {
             State Inspector
           </h2>
           <div className="space-y-4">
-            {bigO && <BigOPanel result={bigO} onClose={() => setBigO(null)} />}
             {debugging ? (
               <StateInspector
                 timeline={timeline!}
@@ -353,11 +291,9 @@ export default function App() {
                 previousVariables={previousVariables}
               />
             ) : (
-              !bigO && (
-                <div className="rounded-lg border-2 border-dashed border-slate-300 p-10 text-center text-sm text-slate-400">
-                  Run a trace to inspect execution state step by step.
-                </div>
-              )
+              <div className="rounded-lg border-2 border-dashed border-slate-300 p-10 text-center text-sm text-slate-400">
+                Run a trace to inspect execution state step by step.
+              </div>
             )}
           </div>
         </section>
