@@ -73,7 +73,7 @@ export default function PlanningModal({
               onChange={(e) => onPseudocodeChange(e.target.value)}
               spellCheck={false}
               placeholder={
-                "e.g.\nfor each number in nums:\n    complement = target - number\n    if complement seen before:\n        return both indices\n    remember this number's index"
+                "# FUNCTION calculate_total(cart)\n#\n# INPUT: list of items, each with a price field\n# OUTPUT: total price after any applicable discount\n#\n# Initialize total\nSET total TO 0\n#\n# FOR LOOP to iterate through all items\nFOR each item IN cart\n    ADD item.price to total\nENDFOR\n#\n# Subtract discount if conditions are met\nIF total > 100\n    SET discount TO total * 0.1\n    SUBTRACT discount FROM total\nENDIF\n#\nRETURN total"
               }
               className="min-h-0 flex-1 resize-none rounded-lg border border-slate-300 p-4 font-mono text-sm text-slate-800 focus:border-indigo-500 focus:outline-none"
             />
