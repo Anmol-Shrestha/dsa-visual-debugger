@@ -12,6 +12,7 @@ resource-limited subprocess.
 import copy
 import sys
 import time
+import traceback
 from typing import Any
 
 from services.serialization import serialize_value
@@ -28,7 +29,26 @@ DEFAULT_MAX_SECONDS = 5.0
 
 class ExecutionEngineError(Exception):
     """Any failure the caller should surface as a bad run: compile error,
-    missing function, user-code crash, or a tripped safety limit."""
+    missing function, user-code crash, or a tripped safety limit.
+
+    Carries structured details so the UI can point at the failing line and
+    show the stack that led to it. ``stack`` lists only user-code frames,
+    outermost first.
+    """
+
+    def __init__(
+        self,
+        message: str,
+        *,
+        error_type: str | None = None,
+        line_number: int | None = None,
+        stack: list[dict[str, Any]] | None = None,
+    ) -> None:
+        super().__init__(message)
+        self.message = message
+        self.error_type = error_type
+        self.line_number = line_number
+        self.stack = stack or []
 
 
 class _SafetyLimitExceeded(BaseException):
@@ -75,7 +95,9 @@ class ExecutionEngine:
             compiled = compile(code, USER_CODE_FILENAME, "exec")
         except SyntaxError as exc:
             raise ExecutionEngineError(
-                f"Syntax error on line {exc.lineno}: {exc.msg}"
+                f"Syntax error on line {exc.lineno}: {exc.msg}",
+                error_type="SyntaxError",
+                line_number=exc.lineno,
             ) from exc
 
         namespace: dict[str, Any] = {}
@@ -85,11 +107,27 @@ class ExecutionEngine:
         try:
             exec(compiled, namespace)
         except _SafetyLimitExceeded as exc:
-            raise ExecutionEngineError(str(exc)) from exc
+            raise ExecutionEngineError(str(exc), error_type="SafetyLimit") from exc
         except Exception as exc:
-            # The user's own code crashed — report it as a run failure.
+            # The user's own code crashed — report it as a run failure with
+            # the user-code frames from the traceback (line + function name).
+            # col_start/col_end (Python 3.11+) are 0-based, end-exclusive
+            # offsets of the failing sub-expression, e.g. "nums[index]".
+            stack = [
+                {
+                    "frame_name": frame.name,
+                    "line_number": frame.lineno,
+                    "col_start": frame.colno,
+                    "col_end": frame.end_colno,
+                }
+                for frame in traceback.extract_tb(exc.__traceback__)
+                if frame.filename == USER_CODE_FILENAME
+            ]
             raise ExecutionEngineError(
-                f"Execution raised {type(exc).__name__}: {exc}"
+                f"Execution raised {type(exc).__name__}: {exc}",
+                error_type=type(exc).__name__,
+                line_number=stack[-1]["line_number"] if stack else None,
+                stack=stack,
             ) from exc
         finally:
             sys.settrace(None)

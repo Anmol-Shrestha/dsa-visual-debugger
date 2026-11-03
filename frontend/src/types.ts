@@ -34,3 +34,20 @@ export interface ComplexityResult {
   coefficients: [number, number];
   fits: ComplexityFit[];
 }
+
+/** One user-code frame in a failed run's stack trace (outermost first). */
+export interface StackFrameInfo {
+  frame_name: string;
+  line_number: number;
+  /** 0-based, end-exclusive columns of the failing expression (null if unknown). */
+  col_start: number | null;
+  col_end: number | null;
+}
+
+/** Structured failure detail returned by POST /v1/debug/trace (HTTP 400). */
+export interface RunErrorInfo {
+  message: string;
+  error_type: string | null;
+  line_number: number | null;
+  stack: StackFrameInfo[];
+}
