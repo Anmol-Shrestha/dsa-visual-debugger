@@ -11,3 +11,6 @@ frontend/dist/
 
 # OS / editor
 .DS_Store
+
+# Local-only blog drafts (not published to GitHub)
+docs/blog/
