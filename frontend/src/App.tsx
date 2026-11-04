@@ -391,18 +391,25 @@ export default function App() {
   return (
     <div className="flex h-screen flex-col overflow-hidden bg-slate-100 font-sans text-slate-800">
       {/* ---------- top bar ---------- */}
-      <header className="flex flex-wrap items-center gap-3 border-b border-slate-200 bg-white px-4 py-2 shadow-sm">
+      <header className="flex flex-wrap items-center gap-3 border-b border-white/10 bg-[linear-gradient(172deg,#16181d_0%,#0c0d10_100%)] px-4 py-2 text-zinc-200 shadow-[0_18px_40px_-24px_#000]">
+        <a
+          href="#/"
+          className="rounded-md px-2 py-1 text-sm text-zinc-400 transition-colors hover:bg-white/5 hover:text-zinc-100"
+          title="Back to the landing page"
+        >
+          ← Home
+        </a>
         <button
           onClick={() => setSidebarOpen((o) => !o)}
           aria-label="Toggle explorer"
           aria-pressed={sidebarOpen}
           title="Toggle explorer (Ctrl/⌘+B)"
-          className="rounded-md px-2 py-1 text-slate-500 hover:bg-slate-100 hover:text-slate-800"
+          className="rounded-md px-2 py-1 text-zinc-400 transition-colors hover:bg-white/5 hover:text-zinc-100"
         >
           ☰
         </button>
-        <h1 className="flex items-center gap-2 text-base font-semibold tracking-tight text-slate-900">
-          <span className="flex h-6 w-6 items-center justify-center rounded-md bg-indigo-600 text-xs text-white">
+        <h1 className="flex items-center gap-2 text-base font-semibold tracking-tight text-zinc-100">
+          <span className="flex h-6 w-6 items-center justify-center rounded-md bg-gradient-to-b from-[#d9dee6] to-[#9aa3af] text-xs text-[#0b0c0e] shadow-[0_0_12px_rgba(207,213,221,0.25)]">
             ▶
           </span>
           DSA Visual Debugger
@@ -413,7 +420,7 @@ export default function App() {
             onClick={handleRun}
             disabled={status === "running"}
             title="Run & trace (Ctrl/⌘+Enter)"
-            className="rounded-md bg-indigo-600 px-3.5 py-1.5 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 disabled:opacity-50"
+            className="rounded-md bg-gradient-to-b from-[#d9dee6] to-[#9aa3af] px-3.5 py-1.5 text-sm font-semibold text-[#0b0c0e] shadow-[0_0_18px_rgba(207,213,221,0.15)] transition hover:brightness-110 disabled:opacity-50"
           >
             {status === "running"
               ? server.state === "waking"
@@ -424,13 +431,13 @@ export default function App() {
           <button
             onClick={handleSaveToDesktop}
             title="Save to Desktop (Ctrl/⌘+S)"
-            className="rounded-md bg-emerald-600 px-3.5 py-1.5 text-sm font-semibold text-white shadow-sm hover:bg-emerald-500"
+            className="rounded-md border border-white/15 bg-[linear-gradient(180deg,#2a2e36,#17191e)] px-3.5 py-1.5 text-sm font-semibold text-zinc-100 shadow-sm transition hover:border-white/30 hover:brightness-110"
           >
             ⬇ Save to Desktop
           </button>
           <button
             onClick={handleSaveToServer}
-            className="rounded-md border border-slate-300 bg-white px-3 py-1.5 text-sm text-slate-600 hover:bg-slate-50"
+            className="rounded-md border border-white/15 bg-white/5 px-3 py-1.5 text-sm text-zinc-300 transition hover:border-white/30 hover:bg-white/10 hover:text-zinc-100"
           >
             Save to Server
           </button>
@@ -655,8 +662,8 @@ function PanelToggle({
       aria-pressed={active}
       className={`rounded-md border px-3 py-1.5 text-sm font-medium transition-colors ${
         active
-          ? "border-indigo-200 bg-indigo-50 text-indigo-700"
-          : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
+          ? "border-white/25 bg-white/10 text-zinc-100 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]"
+          : "border-white/10 bg-transparent text-zinc-400 hover:bg-white/5 hover:text-zinc-100"
       }`}
     >
       {children}
